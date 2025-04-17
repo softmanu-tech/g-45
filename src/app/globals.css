@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: blue-500;
+  --background: blue;
   --foreground: white;
   --font-rowdies: 'Rowdies', cursive;
   --font-cinzel: 'Cinzel', serif;

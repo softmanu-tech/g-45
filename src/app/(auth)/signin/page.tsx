@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from "framer-motion"
+import Image from 'next/image'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -60,7 +61,7 @@ export default function LoginPage() {
                 className={`flex justify-center mb-6`}
                 >
                 <div className={`bg-white/10 backdrop-blur-md rounded-full p-2 shadow-xl`}>
-                    <img
+                    <Image
                         src="/logo.jpg"
                         alt="Logo"
                         width={90}
@@ -127,7 +128,7 @@ export default function LoginPage() {
                         </form>
                     </CardContent>
                     <CardFooter className="text-center">
-                        <Button className="w-full" type="submit" disabled={isLoading}>
+                        <Button className="w-full bg-blue-500 text-white" type="submit" disabled={isLoading}>
                             {isLoading ? "Signing in..." : "Sign In"}
                         </Button>
 
