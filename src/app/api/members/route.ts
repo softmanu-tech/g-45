@@ -26,7 +26,7 @@ export async function GET() {
 
     try {
         if (!user.group) {
-            return NextResponse.json({ error: 'Leader not assigned to a group' }, { status: 400 });
+            return NextResponse.json({ error: 'Leader not assigned to a groups' }, { status: 400 });
         }
 
         const members = await Member.find({ group: user.group }).populate('group');
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         }
 
         if (!user.group) {
-            return NextResponse.json({ error: 'Leader not assigned to a group' }, { status: 400 });
+            return NextResponse.json({ error: 'Leader not assigned to a groups' }, { status: 400 });
         }
 
         const member = new Member({
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
         await member.save();
 
-        // Add member to group
+        // Add member to groups
         await Group.findByIdAndUpdate(user.group, {
             $push: { members: member._id }
         });

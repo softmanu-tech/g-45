@@ -28,28 +28,46 @@ export default function LoginPage() {
         setIsLoading(true)
         setError("")
 
+
         try {
+            console.log("Submitting:", { email, password });
+
             const res = await fetch("/api/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ email, password }),
-            })
+            });
 
-            const data = await res.json()
+            const data = await res.json();
+            console.log("Response from API:", data);
+            if(res.ok){
+                const role = data?.user?.role;
+
+                //redirect
+                if (role=== "bishop") {
+                    router.push("/bishop");
+                } else if (role=== "leader"){
+                    router.push("/leader");
+                } else {
+                    router.push("/unauthorized");
+                }
+            }
 
             if (!res.ok) {
-                setError(data.message || "Invalid credentials")
-            } else {
-                router.push("/dashboard")
+                throw new Error(data.message || "Login failed");
             }
+
+            // Success — you can store data.user or redirect the user
+            console.log("Logged in:", data.user);
         } catch (err) {
-            console.error(err)
+            console.error("Error during login:", err);
             setError("An unexpected error has occurred. Please try again.")
         } finally {
             setIsLoading(false)
         }
+
     }
 
     return (
@@ -59,7 +77,7 @@ export default function LoginPage() {
                 animate={{ opacity:1, scale:1 }}
                 transition={{ duration: 0.6, ease: "easeInOut" }}
                 className={`flex justify-center mb-6`}
-            >
+                >
                 <div className={`bg-white/10 backdrop-blur-md rounded-full p-2 shadow-xl`}>
                     <Image
                         src="/logo.jpg"
@@ -124,15 +142,15 @@ export default function LoginPage() {
                                     className="w-full p-2 border rounded"
                                 />
                             </div>
+                            <CardFooter className="text-center">
+                                <Button className="w-full bg-blue-500 text-white" type="submit" disabled={isLoading}>
+                                    {isLoading ? "Signing in..." : "Sign In"}
+                                </Button>
+
+                            </CardFooter>
 
                         </form>
                     </CardContent>
-                    <CardFooter className="text-center">
-                        <Button className="w-full bg-blue-500 text-white" type="submit" disabled={isLoading}>
-                            {isLoading ? "Signing in..." : "Sign In"}
-                        </Button>
-
-                    </CardFooter>
                 </Card>
             </motion.div>
         </div>

@@ -13,7 +13,7 @@ interface AuthToken {
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const loginUrl = new URL('/login', request.url);
-    const leaderDashboardUrl = new URL('/dashboard/leader', request.url);
+    const leaderDashboardUrl = new URL('/dashboard/leaders', request.url);
     const bishopDashboardUrl = new URL('/dashboard/bishop', request.url);
 
     try {
@@ -31,14 +31,14 @@ export async function middleware(request: NextRequest) {
         }
 
         // 2. Authorization Check
-        if (pathname.startsWith('/dashboard/bishop')) {
+        if (pathname.startsWith('/bishop')) {
             if (token.role !== 'bishop') {
                 return NextResponse.redirect(leaderDashboardUrl);
             }
             return NextResponse.next();
         }
 
-        if (pathname.startsWith('/dashboard/leader')) {
+        if (pathname.startsWith('/leaders')) {
             if (token.role !== 'leader') {
                 return NextResponse.redirect(bishopDashboardUrl);
             }
@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
 
     } catch (error) {
         console.error('Middleware error:', error);
-        // Fallback redirect to login with error state
+
         loginUrl.searchParams.set('error', 'middleware_failure');
         return NextResponse.redirect(loginUrl);
     }

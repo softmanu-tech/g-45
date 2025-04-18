@@ -1,10 +1,19 @@
 // lib/models/Group.ts
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document, model, models } from 'mongoose';
 
-const GroupSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    leader: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Member' }],
-}, { timestamps: true });
+export interface IGroup extends Document {
+    name: string;
+    leader?: mongoose.Types.ObjectId;
+    members: mongoose.Types.ObjectId[];
+}
 
-export default mongoose.models.Group || mongoose.model('Group', GroupSchema);
+const GroupSchema: Schema<IGroup> = new Schema(
+    {
+        name: { type: String, required: true },
+        leader: { type: Schema.Types.ObjectId, ref: 'User' },
+        members: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    },
+    { timestamps: true }
+);
+
+export const Group = models.Group || model<IGroup>('Group', GroupSchema);

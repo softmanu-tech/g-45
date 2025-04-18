@@ -1,4 +1,4 @@
-// app/api/users/create-leader/route.ts
+// app/api/users/create-leaders/route.ts
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
