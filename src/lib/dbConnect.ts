@@ -33,7 +33,6 @@ async function dbConnect(): Promise<Mongoose> {
         return cached.conn;
     }
 
-    // Create new connection promise if none exists
     if (!cached.promise) {
         // TypeScript now knows MONGODB_URI is defined because of the early throw
         const connectionOptions: mongoose.ConnectOptions = {

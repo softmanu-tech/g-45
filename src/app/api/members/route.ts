@@ -1,88 +1,62 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { NextResponse } from 'next/server';
-import Member from '@/lib/models/Member';
-import Group from '@/lib/models/Group'; // Added missing import
-import dbConnect from '@/lib/dbConnect';
-import { Types } from 'mongoose'; // For TypeScript type safety
-
-interface SessionUser {
-    id: string;
-    name?: string;
-    email?: string;
-    role: 'bishop' | 'leader';
-    group?: string | Types.ObjectId;
-}
-
-export async function GET() {
-    const session = await getServerSession(authOptions);
-    const user = session?.user as SessionUser | undefined;
-
-    if (!session || !user || user.role !== 'leader') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    dbConnect();
-
-    try {
-        if (!user.group) {
-            return NextResponse.json({ error: 'Leader not assigned to a groups' }, { status: 400 });
-        }
-
-        const members = await Member.find({ group: user.group }).populate('group');
-        return NextResponse.json({ success: true, data: members });
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error occurred';
-        return NextResponse.json({ error: message }, { status: 500 });
-    }
-}
+// src/app/api/members/route.ts
+import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import dbConnect from '@/lib/dbConnect'
+import { User } from '@/lib/models/User'
+import { Group } from '@/lib/models/Group'
 
 export async function POST(request: Request) {
-    const session = await getServerSession(authOptions);
-    const user = session?.user as SessionUser | undefined;
-
-    if (!session || !user || user.role !== 'leader') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-     dbConnect();
+    const { name, email, phone, groupId, role } = await request.json()
+
+    if (!name || !email || !groupId || !role) {
+        return NextResponse.json(
+            { error: 'Name, email, group ID and role are required' },
+            { status: 400 }
+        )
+    }
+
+    await dbConnect()
 
     try {
-        const { name, phone } = await request.json();
-
-        if (!name || !phone) {
-            return NextResponse.json({ error: 'Name and phone are required' }, { status: 400 });
+        // Verify the group exists and the user is its leader
+        const group = await Group.findById(groupId)
+        if (!group) {
+            return NextResponse.json({ error: 'Group not found' }, { status: 404 })
         }
 
-        if (!user.group) {
-            return NextResponse.json({ error: 'Leader not assigned to a groups' }, { status: 400 });
-        }
-
-        const member = new Member({
+        // Create the member
+        const newMember = new User({
             name,
+            email,
             phone,
-            group: user.group,
-            createdBy: user.id
-        });
+            group: groupId,
+            role
+        })
 
-        await member.save();
+        await newMember.save()
 
-        // Add member to groups
-        await Group.findByIdAndUpdate(user.group, {
-            $push: { members: member._id }
-        });
+        // Add member to group
+        group.members.push(newMember._id)
+        await group.save()
 
         return NextResponse.json({
-            success: true,
-            data: {
-                _id: member._id,
-                name: member.name,
-                phone: member.phone,
-                group: member.group
-            }
-        }, { status: 201 });
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error occurred';
-        return NextResponse.json({ error: message }, { status: 500 });
+            _id: newMember._id.toString(),
+            name: newMember.name,
+            email: newMember.email,
+            phone: newMember.phone
+        })
+
+    } catch (error) {
+        console.error('Error adding member:', error)
+        return NextResponse.json(
+            { error: 'Failed to add member' },
+            { status: 500 }
+        )
     }
 }

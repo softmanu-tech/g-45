@@ -1,6 +1,6 @@
 import connectionToDatabase from "@/lib/mongodb";
 
-import User from "@/lib/models/User";
+import {User} from "@/lib/models/User";
 
 import {NextResponse} from "next/server";
 import bcrypt from "bcrypt";

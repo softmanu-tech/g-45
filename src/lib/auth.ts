@@ -1,11 +1,31 @@
 // lib/auth.ts
-import NextAuth from 'next-auth';
+import NextAuth, { type NextAuthOptions, type User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import User from './models/User';
+import { User as UserModel } from './models/User';
 import dbConnect from './dbConnect';
 
-export const authOptions = {
+// Extend the User type with your custom fields
+interface IUser extends User {
+    id: string;
+    role?: string;
+    group?: string;
+}
+
+// Extend the default session types
+declare module 'next-auth' {
+    interface Session {
+        user: {
+            id: string;
+            name?: string;
+            email?: string;
+            role?: string;
+            group?: string;
+        };
+    }
+}
+
+export const authOptions: NextAuthOptions = {
     providers: [
         CredentialsProvider({
             name: 'Credentials',
@@ -13,13 +33,17 @@ export const authOptions = {
                 email: { label: "Email", type: "email" },
                 password: { label: "Password", type: "password" }
             },
-            async authorize(credentials) {
+            async authorize(credentials): Promise<IUser | null> {
                 await dbConnect();
 
-                const user = await User.findOne({ email: credentials?.email });
+                if (!credentials?.email || !credentials.password) {
+                    return null;
+                }
+
+                const user = await UserModel.findOne({ email: credentials.email });
                 if (!user) return null;
 
-                const isValid = await bcrypt.compare(credentials?.password || '', user.password);
+                const isValid = await bcrypt.compare(credentials.password, user.password);
                 if (!isValid) return null;
 
                 return {
@@ -33,16 +57,20 @@ export const authOptions = {
         })
     ],
     callbacks: {
-        async jwt({ token, user }: { token: any, user: any }) {
+        async jwt({ token, user }) {
             if (user) {
-                token.role = user.role;
-                token.group = user.group;
+                token.id = (user as IUser).id;
+                token.role = (user as IUser).role;
+                token.group = (user as IUser).group;
             }
             return token;
         },
-        async session({ session, token }: { session: any, token: any }) {
-            session.user.role = token.role;
-            session.user.group = token.group;
+        async session({ session, token }) {
+            if (session.user) {
+                session.user.id = token.id as string;
+                session.user.role = token.role as string;
+                session.user.group = token.group as string;
+            }
             return session;
         }
     },
@@ -50,6 +78,9 @@ export const authOptions = {
         signIn: '/login',
     },
     secret: process.env.NEXTAUTH_SECRET,
+    session: {
+        strategy: "jwt",
+    },
 };
 
 export default NextAuth(authOptions);

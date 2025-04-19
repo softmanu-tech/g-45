@@ -1,19 +1,33 @@
+// src/app/api/bishop/route.ts
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import { User } from '@/lib/models/User';
 import { Group } from '@/lib/models/Group';
+import Attendance from '@/lib/models/Attendance';
 
 export async function GET() {
-    await dbConnect();
+    try {
+        await dbConnect();
 
-    const leaders = await User.find({ role: 'leader' }).populate('group');
-    const groups = await Group.find().populate('leader');
+        const leadersCount = await User.countDocuments({ role: 'leader' });
+        const groupsCount = await Group.countDocuments();
+        const membersCount = await User.countDocuments({ role: 'member' });
 
-    return NextResponse.json({
-        message: 'Bishop dashboard overview',
-        totalLeaders: leaders.length,
-        totalGroups: groups.length,
-        leaders,
-        groups,
-    });
+        // Calculate total attendance
+        const attendanceRecords = await Attendance.find({});
+        const totalAttendance = attendanceRecords.reduce((sum, record) => sum + (record.count || 0), 0);
+
+        return NextResponse.json({
+            leaders: leadersCount,
+            groups: groupsCount,
+            members: membersCount,
+            totalAttendance
+        });
+    } catch (error) {
+        console.error('Error fetching bishop dashboard stats:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch dashboard stats' },
+            { status: 500 }
+        );
+    }
 }
