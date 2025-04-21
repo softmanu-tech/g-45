@@ -1,7 +1,7 @@
 // src/lib/models/Event.ts
-import mongoose, { Schema, Document, Model } from 'mongoose'
+import mongoose, {Schema, Document, Model, models, model} from 'mongoose'
 import { Group } from './Group'
-import { User } from './User'
+import { User} from './User'
 
 // TypeScript interface for the Event document
 export interface IEvent extends Document {
@@ -103,5 +103,7 @@ EventSchema.methods.getUpcomingEvents = function () {
 }
 
 // Create and export the model
-export const Event: EventModel = mongoose.models.Event as EventModel ||
-    mongoose.model<IEvent, EventModel>('Event', EventSchema)
+export const Event = models.Event  || model<IEvent, EventModel>('Event', EventSchema)
+
+
+

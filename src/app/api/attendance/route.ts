@@ -5,11 +5,11 @@ import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/dbConnect'
 import {Attendance} from '@/lib/models/Attendance'
 import {Group} from '@/lib/models/Group'
-import type { NextApiRequest } from 'next'
 
 interface AttendanceRequest {
     date: string
     groupId: string
+    memberId: string
     presentIds: string[]
 }
 

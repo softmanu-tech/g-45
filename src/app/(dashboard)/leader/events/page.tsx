@@ -39,7 +39,7 @@ export default function EventsPage() {
             }
         }
 
-        fetchEvents()
+        fetchEvents().then()
     }, [])
 
     if (loading) {

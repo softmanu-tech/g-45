@@ -1,24 +1,22 @@
 // src/lib/models/Attendance.ts
-import mongoose, { Schema, Document, Model } from 'mongoose';
-import { Event } from './Event';
-import { User } from './User';
-import { Group } from './Group';
+import mongoose, { Schema, Document, Model, models } from 'mongoose';
 
 // TypeScript interface for the Attendance document
 export interface IAttendance extends Document {
-    event: mongoose.Types.ObjectId | typeof Event;
-    group: mongoose.Types.ObjectId | typeof Group;
+    event: mongoose.Types.ObjectId;
+    group: mongoose.Types.ObjectId;
     date: Date;
-    presentMembers: mongoose.Types.ObjectId[] | typeof User[];
-    absentMembers: mongoose.Types.ObjectId[] | typeof User[];
-    recordedBy: mongoose.Types.ObjectId | typeof User;
+    presentMembers: mongoose.Types.ObjectId[];
+    absentMembers: mongoose.Types.ObjectId[];
+    recordedBy: mongoose.Types.ObjectId;
     notes?: string;
     createdAt: Date;
     updatedAt: Date;
+    getAttendancePercentage?: () => number;
 }
 
 // Mongoose schema definition
-const AttendanceSchema: Schema<IAttendance> = new Schema(
+const AttendanceSchema: Schema = new Schema(
     {
         event: {
             type: Schema.Types.ObjectId,
@@ -71,61 +69,23 @@ AttendanceSchema.index({ recordedBy: 1 });
 AttendanceSchema.index({ 'presentMembers': 1 });
 AttendanceSchema.index({ 'absentMembers': 1 });
 
-// Pre-save hooks for data validation
-AttendanceSchema.pre<IAttendance>('save', async function (next) {
-    // Validate event exists
-    const event = await Event.findById(this.event);
-    if (!event) {
-        throw new Error('Referenced event does not exist');
-    }
-
-    // Validate group exists
-    const group = await Group.findById(this.group);
-    if (!group) {
-        throw new Error('Referenced group does not exist');
-    }
-
-    // Validate recordedBy user exists
-    const recorder = await User.findById(this.recordedBy);
-    if (!recorder) {
-        throw new Error('Referenced user does not exist');
-    }
-
-    // Validate all present members exist and belong to the group
-    for (const memberId of this.presentMembers) {
-        const member = await User.findById(memberId);
-        if (!member || !group.members.includes(memberId)) {
-            throw new Error(`Member ${memberId} not found in group`);
-        }
-    }
-
-    // Validate all absent members exist and belong to the group
-    for (const memberId of this.absentMembers) {
-        const member = await User.findById(memberId);
-        if (!member || !group.members.includes(memberId)) {
-            throw new Error(`Member ${memberId} not found in group`);
-        }
-    }
-
-    next();
-});
-
-// Static methods
+// Define interface for model to include static methods
 interface AttendanceModel extends Model<IAttendance> {
     findByEvent(eventId: string): Promise<IAttendance[]>;
     findByGroup(groupId: string): Promise<IAttendance[]>;
     findByMember(memberId: string): Promise<IAttendance[]>;
 }
 
-AttendanceSchema.statics.findByEvent = async function (eventId: string) {
+// Static methods
+AttendanceSchema.statics.findByEvent = async function(eventId: string) {
     return this.find({ event: eventId }).sort({ date: -1 });
 };
 
-AttendanceSchema.statics.findByGroup = async function (groupId: string) {
+AttendanceSchema.statics.findByGroup = async function(groupId: string) {
     return this.find({ group: groupId }).sort({ date: -1 });
 };
 
-AttendanceSchema.statics.findByMember = async function (memberId: string) {
+AttendanceSchema.statics.findByMember = async function(memberId: string) {
     return this.find({
         $or: [
             { presentMembers: memberId },
@@ -135,13 +95,25 @@ AttendanceSchema.statics.findByMember = async function (memberId: string) {
 };
 
 // Instance methods
-AttendanceSchema.methods.getAttendancePercentage = function (): number {
+AttendanceSchema.methods.getAttendancePercentage = function() {
     const totalMembers = this.presentMembers.length + this.absentMembers.length;
     return totalMembers > 0
         ? Math.round((this.presentMembers.length / totalMembers) * 100)
         : 0;
 };
 
-// Create and export the model
-export const Attendance: AttendanceModel = mongoose.models.Attendance as AttendanceModel ||
-    mongoose.model<IAttendance, AttendanceModel>('Attendance', AttendanceSchema);
+// Virtual for presentCount
+AttendanceSchema.virtual('presentCount').get(function() {
+    return this.presentMembers.length;
+});
+
+// Virtual for absentCount
+AttendanceSchema.virtual('absentCount').get(function() {
+    return this.absentMembers.length;
+});
+
+// Create and export the model - FIX the type error here
+const AttendanceModel = (models.Attendance ||
+    mongoose.model<IAttendance, AttendanceModel>('Attendance', AttendanceSchema)) as AttendanceModel;
+
+export const Attendance = AttendanceModel;

@@ -19,6 +19,7 @@ interface Group {
 interface Event {
     _id: string
     title: string
+    groupId: string
     date: string
     description: string
 }
@@ -57,7 +58,7 @@ export default function LeaderDashboard() {
     }
 
     useEffect(() => {
-        fetchLeaderData()
+        fetchLeaderData().then()
     }, [])
 
     const handleEventCreated = (newEvent: Event) => {
@@ -66,7 +67,7 @@ export default function LeaderDashboard() {
 
     const handleAttendanceMarked = () => {
         // Refresh data after marking attendance
-        fetchLeaderData()
+        fetchLeaderData().then()
     }
 
     if (loading) {
