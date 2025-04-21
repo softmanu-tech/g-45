@@ -23,6 +23,13 @@ import {
 } from "@/components/ui/select";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
+interface MarkAttendanceFormProps {
+    groupId: string
+    members: Member[]
+    onAttendanceMarked: () => void // This is serializable
+    currentUserId: string
+}
+
 interface Member {
     _id: string;
     name: string;
