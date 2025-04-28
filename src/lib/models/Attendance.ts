@@ -6,6 +6,7 @@ export interface IAttendance extends Document {
     event: mongoose.Types.ObjectId;
     group: mongoose.Types.ObjectId;
     date: Date;
+    count?: number;
     presentMembers: mongoose.Types.ObjectId[];
     absentMembers: mongoose.Types.ObjectId[];
     recordedBy: mongoose.Types.ObjectId;
