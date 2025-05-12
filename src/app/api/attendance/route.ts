@@ -3,33 +3,28 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/dbConnect'
-import {Attendance} from '@/lib/models/Attendance'
-import {Group} from '@/lib/models/Group'
+import { Attendance, IAttendance } from '@/lib/models/Attendance'
+import { Group } from '@/lib/models/Group'
 
 interface AttendanceRequest {
     date: string
     groupId: string
-    memberId: string
     presentIds: string[]
 }
 
 export async function POST(request: Request) {
     try {
-        // Verify authentication
+        // Authenticate user
         const session = await getServerSession(authOptions)
         if (!session?.user?.id) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            )
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // Validate request body
+        // Parse and validate request body
         const { date, groupId, presentIds }: AttendanceRequest = await request.json()
-
-        if (!date || !groupId || !presentIds) {
+        if (!date || !groupId || !Array.isArray(presentIds) || presentIds.length === 0) {
             return NextResponse.json(
-                { error: 'Date, group ID and present IDs are required' },
+                { error: 'Date, group ID, and present IDs are required' },
                 { status: 400 }
             )
         }
@@ -38,20 +33,18 @@ export async function POST(request: Request) {
         const attendanceDate = new Date(date)
         if (isNaN(attendanceDate.getTime())) {
             return NextResponse.json(
-                { error: 'Invalid date format' },
+                { error: 'Invalid date format. Use YYYY-MM-DD format.' },
                 { status: 400 }
             )
         }
 
+        // Connect to the database
         await dbConnect()
 
-        // Verify group exists and user is leader
+        // Verify group existence and user authorization
         const group = await Group.findById(groupId)
         if (!group) {
-            return NextResponse.json(
-                { error: 'Group not found' },
-                { status: 404 }
-            )
+            return NextResponse.json({ error: 'Group not found' }, { status: 404 })
         }
 
         if (group.leader.toString() !== session.user.id) {
@@ -61,16 +54,12 @@ export async function POST(request: Request) {
             )
         }
 
-        // Validate all present IDs are group members
-        const invalidMembers = presentIds.filter(id =>
-            !group.members.some(memberId => memberId.toString() === id)
-        )
+        // Validate present IDs against group members
+        const groupMemberIds = new Set(group.members.map((memberId: string) => memberId.toString()))
+        const invalidMembers = presentIds.filter(id => !groupMemberIds.has(id))
         if (invalidMembers.length > 0) {
             return NextResponse.json(
-                {
-                    error: `Invalid members: ${invalidMembers.join(', ')}`,
-                    validMembers: group.members.map(m => m.toString())
-                },
+                { error: `Invalid members: ${invalidMembers.join(', ')}` },
                 { status: 400 }
             )
         }
@@ -87,7 +76,7 @@ export async function POST(request: Request) {
             )
         }
 
-        // Create new attendance record
+        // Create and save new attendance record
         const attendance = new Attendance({
             date: attendanceDate,
             group: groupId,
@@ -95,21 +84,27 @@ export async function POST(request: Request) {
             absentCount: group.members.length - presentIds.length,
             presentMembers: presentIds,
             recordedBy: session.user.id
-        })
+        }) as IAttendance;
 
         await attendance.save()
 
-        return NextResponse.json({
-            message: 'Attendance recorded successfully',
-            data: {
-                id: attendance._id.toString(),
-                date: attendance.date.toISOString().split('T')[0],
-                group: group.name,
-                presentCount: attendance.presentCount,
-                absentCount: attendance.absentCount
-            }
-        }, { status: 201 })
+        //Convert the document to a plain object to include virtuals
+        const attendanceObject = attendance.toObject();
 
+        // Respond with success
+        return NextResponse.json(
+            {
+                message: 'Attendance recorded successfully',
+                data: {
+                    id: attendanceObject._id.toString(),
+                    date: attendance.date.toISOString().split('T')[0],
+                    group: group.name,
+                    presentCount: attendance.presentCount,
+                    absentCount: attendance.absentCount
+                }
+            },
+            { status: 201 }
+        )
     } catch (error) {
         console.error('Attendance recording error:', error)
         return NextResponse.json(

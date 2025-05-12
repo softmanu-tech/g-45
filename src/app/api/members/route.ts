@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     if (!name || !email || !groupId || !role) {
         return NextResponse.json(
-            { error: 'Name, email, group ID and role are required' },
+            { error: 'All fields are required' },
             { status: 400 }
         )
     }
@@ -29,6 +29,14 @@ export async function POST(request: Request) {
         if (!group) {
             return NextResponse.json({ error: 'Group not found' }, { status: 404 })
         }
+
+        if (group.leader.toString() !== session.user.id) {
+            return NextResponse.json(
+                { error: 'Only the group leader can add members' },
+                { status: 403 }
+            )
+        }
+
 
         // Create the member
         const newMember = new User({

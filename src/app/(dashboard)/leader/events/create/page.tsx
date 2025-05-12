@@ -21,6 +21,7 @@ export default function CreateEventPage() {
                 onEventCreated={(event) => {
                     window.location.href = `/leader/events/${event._id}`
                 }}
+                groupId={""} 
             />
         </div>
     )

@@ -21,7 +21,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 }
 
-// ❌ DELETE a leaders
+// DELETE a leaders
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {
     try {
         await dbConnect();

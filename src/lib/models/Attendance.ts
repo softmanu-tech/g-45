@@ -13,6 +13,8 @@ export interface IAttendance extends Document {
     notes?: string;
     createdAt: Date;
     updatedAt: Date;
+    presentCount?: number;
+    absentCount?: number;
     getAttendancePercentage?: () => number;
 }
 
@@ -104,12 +106,12 @@ AttendanceSchema.methods.getAttendancePercentage = function() {
 };
 
 // Virtual for presentCount
-AttendanceSchema.virtual('presentCount').get(function() {
+AttendanceSchema.virtual('presentCount').get(function(this: IAttendance) {
     return this.presentMembers.length;
 });
 
 // Virtual for absentCount
-AttendanceSchema.virtual('absentCount').get(function() {
+AttendanceSchema.virtual('absentCount').get(function(this: IAttendance) {
     return this.absentMembers.length;
 });
 

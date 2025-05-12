@@ -2,11 +2,13 @@
 import mongoose, { Schema, Document, models, model } from 'mongoose';
 
 export interface IUser extends Document {
+    _id: mongoose.Types.ObjectId;
     name: string;
     email: string;
     password: string;
     role: 'bishop' | 'leader' | 'member'; // Added 'member'
     group?: mongoose.Types.ObjectId;
+    phone?: string;
 }
 
 const UserSchema: Schema<IUser> = new Schema(
