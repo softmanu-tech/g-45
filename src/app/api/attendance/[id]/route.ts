@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/dbConnect'
-import { Attendance } from '@/lib/models/Attendance'
+import { Attendance, IAttendance } from '@/lib/models/Attendance'
 import { Group } from '@/lib/models/Group'
 
 interface AttendanceRequest {
@@ -63,13 +63,13 @@ export async function POST(request: Request) {
 
         // Validate all present IDs are group members
         const invalidMembers = presentIds.filter(id =>
-            !group.members.some(memberId => memberId.toString() === id)
+            !group.members.some((memberId: string) => memberId.toString() === id)
         )
         if (invalidMembers.length > 0) {
             return NextResponse.json(
                 {
                     error: `Invalid members: ${invalidMembers.join(', ')}`,
-                    validMembers: group.members.map(m => m.toString())
+                    validMembers: group.members.map((memberId: string) => memberId.toString())
                 },
                 { status: 400 }
             )
@@ -89,8 +89,8 @@ export async function POST(request: Request) {
 
         // Calculate absent members (those in group but not in presentIds)
         const absentMemberIds = group.members
-            .map(id => id.toString())
-            .filter(id => !presentIds.includes(id))
+            .map((id: string) => id.toString())
+            .filter((id: string) => !presentIds.includes(id))
 
         // Create new attendance record
         const attendance = new Attendance({
@@ -101,14 +101,16 @@ export async function POST(request: Request) {
             absentMembers: absentMemberIds,
             recordedBy: session.user.id,
             notes: '' // Optional empty notes
-        })
+        }) as IAttendance;
 
         await attendance.save()
+
+        const attendanceObject = attendance.toObject();
 
         return NextResponse.json({
             message: 'Attendance recorded successfully',
             data: {
-                id: attendance._id.toString(),
+                id: attendanceObject._id.toString(),
                 date: attendance.date.toISOString().split('T')[0],
                 group: group.name,
                 presentCount: attendance.presentMembers.length,

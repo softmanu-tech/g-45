@@ -37,14 +37,18 @@ export const authOptions: NextAuthOptions = {
                 await dbConnect();
 
                 if (!credentials?.email || !credentials.password) {
-                    return null;
+                    throw new Error('Email and password are required');
                 }
 
                 const user = await UserModel.findOne({ email: credentials.email });
-                if (!user) return null;
+                if (!user){
+                    throw new Error('No user found with the given email');
+                }
 
                 const isValid = await bcrypt.compare(credentials.password, user.password);
-                if (!isValid) return null;
+                if (!isValid){
+                    throw new Error('Invalid password');
+                }
 
                 return {
                     id: user._id.toString(),
@@ -63,6 +67,7 @@ export const authOptions: NextAuthOptions = {
                 token.role = (user as IUser).role;
                 token.group = (user as IUser).group;
             }
+            console.log('JWT Callback:', token);
             return token;
         },
         async session({ session, token }) {
@@ -71,6 +76,7 @@ export const authOptions: NextAuthOptions = {
                 session.user.role = token.role as string;
                 session.user.group = token.group as string;
             }
+            console.log('Session Callback:', session);
             return session;
         }
     },

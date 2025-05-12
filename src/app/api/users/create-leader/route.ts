@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import User from '@/lib/models/User';
 import dbConnect from '@/lib/dbConnect';
+import { User } from '@/lib/models/User';
 
 export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
@@ -41,7 +41,9 @@ export async function POST(request: Request) {
                 password // Only returned for demo, in production don't return this
             }
         });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-}
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+        return NextResponse.json({ error: 'An unknown error occurred' }, { status: 500 });
+    }}

@@ -1,10 +1,10 @@
-import connectToDatabase from './mongodb'
 import { User } from '@/lib/models/User';
 
 import bcrypt from 'bcryptjs'
+import dbConnect from './dbConnect';
 
 export const initBishop = async () => {
-    await connectToDatabase()
+    await dbConnect()
     const email = process.env.BISHOP_EMAIL
     const password = process.env.BISHOP_PASSWORD
     if (!email || !password) return
